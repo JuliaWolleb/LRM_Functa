@@ -1,0 +1,51 @@
+
+{
+  # Training cofiguration
+  'dataset': autoregressive,
+  'img_size': 112,
+  'batch_size': 1,
+  'inner_steps': 10,
+  'inner_steps_boot': 0,
+  'data_ratio': 0.2,
+  'sample_type': random,
+  'lam': 0,
+  'w0': 10,
+  'wK': 200,
+  'option': lung, 
+  'num_frames': 4,   #number of frames per batch
+  'clip': all,
+  'dimension': swap,
+  'comment' : nonortho,
+  'inner_lr': 0.01, 
+  'model': clb2,
+  'selection': True,
+  'finetune': False,
+  'sobel': False,
+  'mode': separate,
+  'guidance': False,
+  'adversarial': False,
+  'in_size': 2,
+  'out_size': 1,
+  'data_type':img,
+  'lr_scheduler': True,
+  'high_pass': False,
+  'max_iter': 50000,
+  'setting': modulated,
+
+
+
+  # Test configuration
+  'test_batch_size': 1,
+  'num_test_signals': 30,
+  'inner_steps_test': 20,
+
+  # Model config
+  'hidden_size': 256,
+  'num_layers': 10,
+  'latent_modulation_dim':2,
+  'v_dim': 256,
+
+ 
+  # Save NFs to
+  'save_dir': ./nfsets_update/newlus_smooth
+  }

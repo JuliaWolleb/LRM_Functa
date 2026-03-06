@@ -1,0 +1,51 @@
+{
+  # Training cofiguration
+  'dataset': framewise_echo,
+  'img_size': 112,
+  'batch_size': 1,
+  'inner_steps': 10,
+  'inner_steps_boot': 0,
+  'data_ratio': 0.2,
+  'sample_type': random,
+  'lam': 1.0,
+  'w0': 10.,
+  'wK': 200,
+  'option': echo,
+  'num_frames': 4,
+  'clip': all,
+  'in_size': 2, 
+  'out_size' :  1,
+  'max_iter': 50000,
+  'lr_scheduler': True,
+  'high_pass': False,
+  'setting': normal,
+  'enable_skip_connections': False,
+
+
+
+  'data_type': img,
+  'dimension': swap,
+  'comment' : nonortho,   #ortho or separate or nonortho
+  'inner_lr': 0.01, 
+  'mode': separate,
+  'model': clb2,
+  'finetune': False,
+  'selection': True,
+  'sobel': False,
+  'guidance': False,
+  'adversarial': False,
+
+
+
+  # Test configuration
+  'test_batch_size': 1,
+  'num_test_signals': 30,
+  'inner_steps_test': 20,
+
+  # Model config
+  'num_layers': 10,
+  'latent_modulation_dim': 2,  
+  'v_dim': 256,
+
+  # Save NFs to
+  'save_dir': ./nfsets/cardiac_basic_2
