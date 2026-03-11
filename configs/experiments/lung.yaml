@@ -8,30 +8,24 @@
   'inner_steps_boot': 0,
   'data_ratio': 0.2,
   'sample_type': random,
-  'lam': 0,
+  'lam': 0.,                     #lambda value to put orthogonal loss (zero or 1)
   'w0': 10,
   'wK': 200,
   'option': lung, 
-  'num_frames': 4,   #number of frames per batch
+  'num_frames': 4,              #number of frames per batch
   'clip': all,
-  'dimension': swap,
-  'comment' : nonortho,
+  'comment' : basic,            #can be basic or ortho
   'inner_lr': 0.01, 
-  'model': clb2,
+  'model': siren,
   'selection': True,
-  'finetune': False,
-  'sobel': False,
+
   'mode': separate,
-  'guidance': False,
-  'adversarial': False,
+  'adversarial': True,   #should be True if we train orthogonal loss, or False otherwise
   'in_size': 2,
   'out_size': 1,
   'data_type':img,
   'lr_scheduler': True,
-  'high_pass': False,
   'max_iter': 50000,
-  'setting': modulated,
-
 
 
   # Test configuration
@@ -42,10 +36,7 @@
   # Model config
   'hidden_size': 256,
   'num_layers': 10,
-  'latent_modulation_dim':2,
+  'latent_modulation_dim': 2,
   'v_dim': 256,
 
- 
-  # Save NFs to
-  'save_dir': ./nfsets_update/newlus_smooth
   }

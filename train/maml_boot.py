@@ -3,7 +3,6 @@ from common.utils import psnr
 import sklearn
 import torch.nn as nn
 import torch.optim as optim
-from augment import add_gaussian_high_freq_noise_v2
 from torch.nn.utils.stateless import functional_call
 from torch.nn import ParameterList, Parameter
 from functorch import vmap, grad
@@ -22,28 +21,6 @@ def modulation_consistency(modulations, modulations_bootstrapped, bs):
     updated_modulation = updated_modulation.view(bs, -1)
     modulation_norm = torch.mean(updated_modulation ** 2, dim=-1)
     return modulation_norm
-
-
-
-
-def modulation_structure(x):
-    # Compute the difference with the previous and next row
-    diff_prev = x[1:-1] - x[:-2]     # (4, 512)
-    diff_next = x[1:-1] - x[2:]      # (4, 512)
-
-
-    # Sum the differences
-    result = diff_prev + diff_next  # (4, 512)
-
-    total_sum =torch.sum(result ** 2)# torch.norm(result, p=2)**2
-
-  #  diff = x[1:] - x[:-1]  # shape: [5, 512]
-   # total_sum = torch.sum(diff**2)   
-
-    # Optional: if you want to sum across all rows
-    
-    return total_sum
-
 
 
 
@@ -130,16 +107,15 @@ def train_step(args, step, model_wrapper, optimizer, Data,  metric_logger, logge
     model_wrapper.coord_init()
     if args.v_dim > 0:
         vdim = model_wrapper.model.vdim.clone()
-       
-    else:
-           loss_out = model_wrapper(data) 
+
+    loss_out = model_wrapper(data) 
     if step % args.print_step == 0:
         images, modulations = model_wrapper()  # Sample images
 
     """ Bootstrap correction for additional steps (NOT USED IN THIS PAPER) """
     _ = inner_adapt(model_wrapper=model_wrapper, data=data, step_size=args.inner_lr_boot,
                     num_steps=args.inner_steps_boot, first_order=True)
-    #modulations_bootstrapped = model_wrapper.model.modulations.detach()
+
     if step % args.print_step == 0:
         target_boot,_ = model_wrapper()
 
@@ -162,7 +138,7 @@ def train_step(args, step, model_wrapper, optimizer, Data,  metric_logger, logge
     """ Modulation consistency loss between the different v of a batch """
   
 
-    elif args.adversarial == True:
+    if args.adversarial == True:
         loss_boot_weighted = args.lam * loss_boot
 
 
@@ -347,31 +323,7 @@ def inner_adapt_test_scale(model_wrapper, data, step_size=1e-2, num_steps=3, fir
     return loss
 
 
-def inner_adapt_test_scale_lora(model_wrapper, data, step_size=1e-2, num_steps=3, first_order=False, sample_type='none',
-                           scale_type='grad'):
-
-    loss = 0.  # Initialize outer_loop loss
-    for step_inner in range(num_steps):
-        if sample_type != 'none':
-            model_wrapper.sample_coordinates(sample_type, data)
-  
-            loss = inner_loop_step_tt_gradscale_lora(model_wrapper, data, step_size, first_order, scale_type)
-
-    return loss    
-
-def inner_adapt_test_scale_time(model_wrapper, Data, step_size=1e-2, num_steps=3, first_order=False, sample_type='none',
-                           scale_type='grad'):
-    loss = 0.  # Initialize outer_loop loss
-    data = Data['vid']
-    time = Data['time']
-    optimizer_time = optim.SGD(model_wrapper.model.time_layer.parameters(), lr=step_size)
-
-    for step_inner in range(num_steps):
-        if sample_type != 'none':
-            model_wrapper.sample_coordinates(sample_type, data)
-            loss = inner_loop_step_tt_gradscale_time(model_wrapper, data, time, step_size, first_order, scale_type, optimizer_time)
-
-    return loss
+    
 
 def inner_adapt_test_scale_v2(model_wrapper, data, step_size=1e-2, num_steps=3, first_order=False, sample_type='none',
                            scale_type='grad'):
@@ -412,97 +364,16 @@ def inner_adapt_test_scale_v(model_wrapper, data, step_size=1e-2, num_steps=3, f
     return loss
 
 
-
-
-def inner_loop_step_tt_gradscale_new(model_wrapper, data, inner_lr=1e-2,
-                                 first_order=False, scale_type='grad'):
-    batch_size = data.size(0)
-
-    # --------------------------------------------------------
-    # 1. Define a single-sample forward function
-    # --------------------------------------------------------
-    def single_forward(mod_i, x_i):
-        # Save original full modulations
-        full_mod = model_wrapper.model.modulations
-
-        # Replace with mod_i temporarily (shape [1, ...])
-        model_wrapper.model.modulations = mod_i.unsqueeze(0)
-
-        # Forward for a single sample
-        out = model_wrapper(x_i.unsqueeze(0)).squeeze(0)
-
-        # Restore original modulations
-        model_wrapper.model.modulations = full_mod
-        return out
-
-    # Per-sample gradient operator
-    per_sample_grad_fn = vmap(
-        grad(lambda m_i, x_i: single_forward(m_i, x_i)),
-        in_dims=(0, 0)   # map over batch for modulations and data
-    )
-
-    # --------------------------------------------------------
-    # 2. FIRST gradient: subsample_grad
-    # --------------------------------------------------------
-    with torch.enable_grad():
-        subsample_grad = per_sample_grad_fn(
-            model_wrapper.model.modulations,  # [B, ...]
-            data                              # [B, 1, 112, 112]
-        )                                      # -> [B, ...]
-
-    # --------------------------------------------------------
-    # 3. Reset model + coord init
-    # --------------------------------------------------------
-    model_wrapper.model.zero_grad()
-    model_wrapper.coord_init()
-
-    # --------------------------------------------------------
-    # 4. SECOND gradient: grads
-    # --------------------------------------------------------
-    with torch.enable_grad():
-        grads = per_sample_grad_fn(
-            model_wrapper.model.modulations,
-            data
-        )     # -> [B, ...]
-
-    # --------------------------------------------------------
-    # 5. Per-sample gradient scaling
-    # --------------------------------------------------------
-    if scale_type == 'grad':
-        subsample_grad_norm = get_grad_norm(subsample_grad, detach=True)  # [B]
-        grad_norm = get_grad_norm(grads, detach=True)                    # [B]
-        grad_scale = subsample_grad_norm / (grad_norm + 1e-16)           # [B]
-
-        # Reshape to broadcast over modulation dimensions
-        grad_scale_ = grad_scale.view((batch_size,) + (1,) * (grads.ndim - 1)).detach()
-
-    else:
-        raise NotImplementedError()
-
-    # --------------------------------------------------------
-    # 6. Per-sample modulation update (IMPORTANT: .data)
-    # --------------------------------------------------------
-    with torch.no_grad():
-        model_wrapper.model.modulations.data -= inner_lr * grads * grad_scale_
-
-    # --------------------------------------------------------
-    # 7. Return loss after update
-    # --------------------------------------------------------
-    return model_wrapper(data)
-
-
 def inner_loop_step_tt_gradscale(model_wrapper, data, inner_lr=1e-2, first_order=False, scale_type='grad'):
-  #  batch_size = data['vid'].size(0)
+  
     batch_size = data.size(0)
-   # print('batch', batch_size)
+  
     model_wrapper.model.zero_grad()
     with torch.enable_grad():
         subsample_loss = model_wrapper(data)
-      #  print('subaple loss', subsample_loss.shape)
-       # print('data', data.shape)
+    
         subsample_grad = torch.autograd.grad(
             subsample_loss.mean() * batch_size,
-           # subsample_loss.sum()/ batch_size,
 
             model_wrapper.model.modulations,
             create_graph=False,
@@ -514,10 +385,9 @@ def inner_loop_step_tt_gradscale(model_wrapper, data, inner_lr=1e-2, first_order
 
     with torch.enable_grad():
         loss = model_wrapper(data)
-       # print('loss', loss.shape, 'data', data.shape)
+       
 
         grads = torch.autograd.grad(
-           # loss.sum()/ batch_size,
             loss.mean() * batch_size,
             model_wrapper.model.modulations,
             create_graph=not first_order,
@@ -526,9 +396,8 @@ def inner_loop_step_tt_gradscale(model_wrapper, data, inner_lr=1e-2, first_order
 
 
      
-  #  print('grads', grads.shape)
+  
     if scale_type == 'grad':
-        # Gradient rescaling at test-time
         subsample_grad_norm = get_grad_norm(subsample_grad, detach=True)
         grad_norm = get_grad_norm(grads, detach=True)
         grad_scale = subsample_grad_norm / (grad_norm + 1e-16)
@@ -538,7 +407,7 @@ def inner_loop_step_tt_gradscale(model_wrapper, data, inner_lr=1e-2, first_order
     else:
         raise NotImplementedError()
     model_wrapper.model.modulations = model_wrapper.model.modulations - inner_lr *grads* grad_scale_ 
-   #print('update modulations')
+
 
     return loss
 

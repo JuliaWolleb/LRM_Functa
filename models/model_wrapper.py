@@ -3,14 +3,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import random
 from torch.nn.utils.stateless import functional_call
-
 from einops import rearrange
 import matplotlib.pyplot as plt
-from train.maml_boot import modulation_structure
-#from pytorch_msssim import ssim
-
 import torch
 import torch.nn.functional as F
+from train.maml_boot import orthogonal_loss
+
 
 def gaussian_1d(window_size, sigma):
     coords = torch.arange(window_size, dtype=torch.float32)
@@ -59,8 +57,8 @@ class ModelWrapper(nn.Module):
         self.args = args
         self.model = model
         self.data_type = args.data_type
-        print('datatype', self.data_type) 
         self.comment = args.comment
+        self.lam = args.lam
         self.adversarial = args.adversarial
         self.sampled_coord = None
         self.sampled_index = None
@@ -71,8 +69,7 @@ class ModelWrapper(nn.Module):
         device = torch.device(f'cuda' if torch.cuda.is_available() else 'cpu')
         args.device = device
         self.mode = args.mode
-       # args.data_type = 'img'
-        #args.img_size = 112
+      
         args.data_size = (1, args.img_size, args.img_size)
         if args.dimension == '3d':
              args.data_size = (1, args.num_frames, args.img_size, args.img_size)
@@ -211,10 +208,7 @@ class ModelWrapper(nn.Module):
     def forward_img(self, x, lora_params=None, t=None):
         coords, meta_batch_size = self.get_batch_coords(x)
         coords = coords.to(self.args.device)
-     #   if self.mode == 'time':
-           
-         #   t = t.to(self.args.device) 
-        #    out = self.model(coords,t)
+     
         if self.comment == 'separate2':
             t = t.to(self.args.device)
             out = self.model(coords,t)
@@ -231,26 +225,19 @@ class ModelWrapper(nn.Module):
                 kl_div =  -0.5 * torch.sum(1 + self.model.modulations_std - self.model.modulations_mean.pow(2) - self.model.modulations_std.exp(), dim=1)
         
         if self.adversarial == True:
-            loss_boot = modulation_structure(self.model.modulations)
-         #  x = rearrange(x, 'b c h w -> b c (h w)')[:, :, self.sampled_index]
-         #  print('x', x.shape, out.shape)
-          # loss_boot = F.l1_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1)
-         #  print('loss boot', loss_boot)
+
+            ortho_loss = orthogonal_loss(self.model.B) 
+     
+            loss_boot =  self.lam * ortho_loss  
+       
+         
         else:
             loss_boot = 0
 
         out = rearrange(out, 'b hw c -> b c hw')
         if exists(x):
             if self.sampled_coord is None and self.gradncp_coord is None:
-                # print('a')
-                 return F.mse_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1)  #+ F.l1_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1)
-             #   return 0.5*F.l1_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1)
-             #  x = rearrange(x, 'b c h w -> b c (h w)')
-            
-              # return 0.3*  ssim_loss_1d(x,out)
-
-
-
+                 return F.mse_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1)  
 
             elif self.gradncp_coord is not None:
                 x = rearrange(x, 'b c h w -> b c (h w)')
@@ -259,27 +246,17 @@ class ModelWrapper(nn.Module):
 
                 return F.mse_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1)
             else:
-              #  print('c')
 
                 x = rearrange(x, 'b c h w -> b c (h w)')[:, :, self.sampled_index]
             
-                # x, out have shape [B, 1, L]
-                # Add one more dimension so it becomes [B, 1, L, 1]
-              #  mseloss = 0.3* ssim_loss_1d(x, out)   # shape [B]
-            #    mseloss = F.mse_loss(x.view(meta_batch_size, -1), out[:meta_batch_size,...].view(-1)).mean(dim=1) 
-                mseloss = F.mse_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1) 
-            #    mseloss = 0.5* F.l1_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1)
-               
-             #   if torch.isnan(mseloss).any():
-              #      mseloss=0*loss_boot
              
-                return  loss_boot + mseloss#+ 0.3*ssim_loss + 0.5*mseloss
+                mseloss = F.mse_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1) 
+           
+                return  loss_boot + mseloss
         
         out = rearrange(out, 'b c (h w) -> b c h w', h=self.height, w=self.width)
-        if self.setting =='lora':
-            return out, self.model.lora_params
-        else:
-            return out, self.model.modulations#self.model.lora_params# self.model.modulations
+      
+        return out, self.model.modulations#self.model.lora_params# self.model.modulations
 
     def forward_img3d(self, x):
         coords, meta_batch_size = self.get_batch_coords(x)
@@ -304,21 +281,4 @@ class ModelWrapper(nn.Module):
 
         return out
 
-    def forward_timeseries(self, x):
-        coords, meta_batch_size = self.get_batch_coords(x)
-        coords = coords.to(self.args.device)
-
-        out = self.model(coords)
-        out = rearrange(out, 'b l c -> b c l')
-
-        if exists(x):
-            if self.sampled_coord is None and self.gradncp_coord is None:
-                return F.mse_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1)
-            elif self.gradncp_coord is not None:
-                x = torch.gather(x, 2, self.gradncp_index)
-                return F.mse_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1)
-            else:
-                x = x[:, :, self.sampled_index]
-                return F.mse_loss(x.view(meta_batch_size, -1), out.reshape(meta_batch_size, -1), reduce=False).mean(dim=1)
-       
-        return out
+  

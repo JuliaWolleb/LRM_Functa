@@ -108,7 +108,6 @@ def fit_nfs_autoregressive(args, model_wrapper, dataloader, double = False, set=
      
       
         for k in range(int(num_steps)):
-           # slice = data[:,t,...][None,...]
             if k ==0:
                 model_wrapper.model.reset_modulations()
                 

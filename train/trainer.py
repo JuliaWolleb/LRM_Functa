@@ -48,9 +48,9 @@ def trainer(args, train_function, test_function, model_wrapper, meta_optimizer, 
            
             if torch.isnan(train_batch).any():
                     continue
-                train_batch = torch.permute(train_batch, (1, 0, 2, 3))
+            train_batch = torch.permute(train_batch, (1, 0, 2, 3))
 
-                train_batch = train_batch.float().to(device, non_blocking=True)  # Batch of images bs, 1, img_size, img_size
+            train_batch = train_batch.float().to(device, non_blocking=True)  # Batch of images bs, 1, img_size, img_size
        
         if args.guidance == True or args.comment == 'separate2':
             if torch.isnan(train_batch['vid']).any():

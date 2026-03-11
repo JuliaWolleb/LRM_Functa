@@ -6,8 +6,8 @@ from data import dataset_echonet
 from common.args import parse_args
 from common.utils import set_random_seed, Logger, InfiniteSampler
 from data.dataset import get_dataset
-from models.inrs import LatentModulatedSIREN,LatentModulatedSIRENLCB,LatentModulatedSIRENLCB_ortho, LatentModulatedSIRENLCB_v3,LatentModulatedSIRENLCB_separate, LatentModulatedSIREN_v2, LatentModulatedSIREN_v3, LatentModulatedSIREN_v4, LatentModulatedSIREN_v5,  LatentModulatedSIRENLCB_nonortho
-from models.wire import INR
+from models.inrs import  LatentModulatedSIRENLCB_ortho, LatentModulatedSIRENLCB_separate,   LatentModulatedSIRENLCB_basic
+
 from models.model_wrapper import ModelWrapper
 from train.trainer import trainer
 from train.maml_boot import train_step
@@ -41,49 +41,21 @@ def main(args):
     if args.dataset == 'framewise_echo' or args.dataset == 'echo_3d':
         print('got 3d dataset')
         infinite_sampler = InfiniteSampler(dataset_echonet.Echo(split="train", period=10, length=args.num_frames  ), rank=0, num_replicas=1, shuffle=True, seed=args.seed)
-        if args.comment == 'finetune10':
-            trainset = dataset_echonet.Echo(split="train", period=10, length=args.num_frames  )
-            reduced_trainset = Subset(trainset, range(20))
-            print('trainset', len(reduced_trainset))
-            infinite_sampler = InfiniteSampler(reduced_trainset, rank=0, num_replicas=1, shuffle=True, seed=args.seed)
-            train_loader = torch.utils.data.DataLoader(reduced_trainset, batch_size=args.batch_size, sampler = infinite_sampler, num_workers=4, prefetch_factor=2)
-        
-        elif args.comment == 'flipped':
-            train_loader = torch.utils.data.DataLoader(dataset_echonet.Echo(split="train", period=1, length=args.num_frames  ), batch_size=args.batch_size, sampler = infinite_sampler, num_workers=4, prefetch_factor=2)
-            val_loader = torch.utils.data.DataLoader(dataset_echonet.Echo(split="val",  period=1, length=args.num_frames  ), batch_size=args.test_batch_size)
-            test_loader = torch.utils.data.DataLoader(dataset_echonet.Echo(split="test", period=1, length=args.num_frames  ), batch_size=args.test_batch_size)
-        
-        else:
-            train_loader = torch.utils.data.DataLoader(dataset_echonet.Echo(split="train", period=10, length=args.num_frames  ), batch_size=args.batch_size, sampler = infinite_sampler, num_workers=4, prefetch_factor=2)
-            val_loader = torch.utils.data.DataLoader(dataset_echonet.Echo(split="val",  period=10, length=args.num_frames  ), batch_size=args.test_batch_size)
-            test_loader = torch.utils.data.DataLoader(dataset_echonet.Echo(split="test", period=10, length=args.num_frames  ), batch_size=args.test_batch_size)
-        if args.dimension == '3d':
-            args.data_size = (1, args.num_frames, args.img_size, args.img_size)
-
+ 
+        train_loader = torch.utils.data.DataLoader(dataset_echonet.Echo(split="train", period=10, length=args.num_frames  ), batch_size=args.batch_size, sampler = infinite_sampler, num_workers=4, prefetch_factor=2)
+        val_loader = torch.utils.data.DataLoader(dataset_echonet.Echo(split="val",  period=10, length=args.num_frames  ), batch_size=args.test_batch_size)
+        test_loader = torch.utils.data.DataLoader(dataset_echonet.Echo(split="test", period=10, length=args.num_frames  ), batch_size=args.test_batch_size)
+       
     else:
         
         """ Define dataloader """
         train_set, val_set, test_set = get_dataset(args, all = True)
-        if args.comment == 'finetune10':
-            train_set = Subset(train_set, range(20))
-            print('trainset', len(train_set))
+      
+        print('train_set', len(train_set))
 
-        if args.dimension == '3d':
-            args.data_size = (1, args.num_frames, args.img_size, args.img_size)
+        infinite_sampler = InfiniteSampler(train_set, rank=0, num_replicas=1, shuffle=True)
 
-        if args.finetune == True:
-            infinite_sampler = InfiniteSampler(val_set, rank=0, num_replicas=1, shuffle=True)
-            train_loader = DataLoader(val_set, sampler=infinite_sampler, batch_size=args.batch_size, num_workers=4,
-                                prefetch_factor=2, drop_last=True)
-
-            print('length to finetune', len(val_set))
-        else: 
-            train_set,  test_set = get_dataset(args)
-            print('train_set', len(train_set))
-
-            infinite_sampler = InfiniteSampler(train_set, rank=0, num_replicas=1, shuffle=True)
-
-            train_loader = DataLoader(train_set, sampler=infinite_sampler, batch_size=args.batch_size, num_workers=4,
+        train_loader = DataLoader(train_set, sampler=infinite_sampler, batch_size=args.batch_size, num_workers=4,
                                 prefetch_factor=2, drop_last=True)
         test_loader = DataLoader(test_set, batch_size=args.test_batch_size, shuffle=True, num_workers=4 , drop_last=True)
        
@@ -91,21 +63,19 @@ def main(args):
 
 
 
-    if args.model == 'clb2':
-        print('got CLB v3')
+    if args.model == 'siren':
+        
         w0s = np.linspace(args.w0, args.wK, args.num_layers)
-        print('w0s', w0s)
-        print('vdim', args.v_dim)
+        
         if args.comment == 'separate':
-            print('got separate model')
+            print('got MedFuncta or VidFuncta model')
 
 
-            
             model = LatentModulatedSIRENLCB_separate(
                 in_size=args.in_size,
                 out_size=args.out_size,
-                min_hidden_size=128,
-                max_hidden_size=512,
+                min_hidden_size=256,
+                max_hidden_size=256,
                 progression_type='exponential',
                 num_layers=args.num_layers,
                 latent_modulation_dim=args.latent_modulation_dim,
@@ -116,18 +86,19 @@ def main(args):
                 guidance = args.guidance
             ).to(device)
             model.modulations = torch.zeros(size=[args.num_frames, args.latent_modulation_dim], requires_grad=True).to(device)
-                # self.modulations = torch.zeros(size=[ latent_modulation_dim], requires_grad=True).to(device)
             if args.v_dim ==0:
                     model.vdim = 0
             else:
                     model.vdim = torch.zeros(size=[1, args.v_dim], requires_grad=True).to(device)
+        
+        
         elif args.comment =='ortho':
-                print('got ortho clb')
+                print('got orthogonal LRM-Functa Model')
                 model = LatentModulatedSIRENLCB_ortho(
                     in_size=args.in_size,
                     out_size=args.out_size,
-                    min_hidden_size=128,
-                    max_hidden_size=512,
+                    min_hidden_size=256,
+                    max_hidden_size=256,
                     progression_type='exponential',
                     num_layers=args.num_layers,
                     latent_modulation_dim=args.latent_modulation_dim,
@@ -137,18 +108,18 @@ def main(args):
                     modulate_scale=args.modulate_scale,
                 ).to(device)
                 model.modulations = torch.zeros(size=[args.num_frames, args.latent_modulation_dim], requires_grad=True).to(device)
-                    # self.modulations = torch.zeros(size=[ latent_modulation_dim], requires_grad=True).to(device)
                 if args.v_dim ==0:
                         model.vdim = 0
                 else:
                         model.vdim = torch.zeros(size=[1, args.v_dim], requires_grad=True).to(device)
-        elif args.comment =='nonortho':
-                print('got nonortho clb')
-                model = LatentModulatedSIRENLCB_nonortho(
+        
+        elif args.comment =='basic':
+                print('got basic LRM-Functa')
+                model = LatentModulatedSIRENLCB_basic(
                     in_size=args.in_size,
                     out_size=args.out_size,
-                    min_hidden_size=128,
-                    max_hidden_size=512,
+                    min_hidden_size=256,
+                    max_hidden_size=256,
                     progression_type='exponential',
                     num_layers=args.num_layers,
                     latent_modulation_dim=args.latent_modulation_dim,
@@ -156,10 +127,8 @@ def main(args):
                     w0s=w0s,
                     modulate_shift=args.modulate_shift,
                     modulate_scale=args.modulate_scale,
-                    ortho = args.adversarial
                 ).to(device)
                 model.modulations = torch.zeros(size=[args.num_frames, args.latent_modulation_dim], requires_grad=True).to(device)
-                    # self.modulations = torch.zeros(size=[ latent_modulation_dim], requires_grad=True).to(device)
                 if args.v_dim ==0:
                         model.vdim = 0
                 else:

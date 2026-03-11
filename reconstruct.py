@@ -7,8 +7,7 @@ from common.args import parse_args
 from common.utils import set_random_seed, load_model
 from data.dataset import get_dataset
 from eval.maml_full_eval import test_model, test_model_autoregressive, reconstruct_model_autoregressive
-from models.inrs import LatentModulatedSIREN, LatentModulatedSIRENLCB, LatentModulatedSIRENLCB_v3,LatentModulatedSIRENLCB_ortho, LatentModulatedSIRENLCB_nonortho,LatentModulatedSIRENLCB_separate, LatentModulatedSIREN_v2, LatentModulatedSIREN_v3, LatentModulatedSIREN_v5
-from models.inrs_spatial import LatentModulatedSIREN_spatial, LatentModulatedSIREN_spatial_plain
+from models.inrs import  LatentModulatedSIRENLCB_ortho, LatentModulatedSIRENLCB_basic,LatentModulatedSIRENLCB_separate
 from models.model_wrapper import ModelWrapper
 
 
@@ -73,7 +72,7 @@ def main(args):
     """ Initialize model and optimizer """
 
 
-    if args.model == 'clb2':
+    if args.model == 'siren':
         print('got CLB v3')
         w0s = np.linspace(args.w0, args.wK, args.num_layers)
         print('w0s', w0s)
@@ -83,8 +82,8 @@ def main(args):
             model = LatentModulatedSIRENLCB_separate(
                 in_size=args.in_size,
                 out_size=args.out_size,
-                min_hidden_size=128,
-                max_hidden_size=512,
+                min_hidden_size=256,
+                max_hidden_size=256,
                 progression_type='exponential',
                 num_layers=args.num_layers,
                 latent_modulation_dim=args.latent_modulation_dim,
@@ -106,8 +105,8 @@ def main(args):
                 model = LatentModulatedSIRENLCB_ortho(
                     in_size=args.in_size,
                     out_size=args.out_size,
-                    min_hidden_size=128,
-                    max_hidden_size=512,
+                    min_hidden_size=256,
+                    max_hidden_size=256,
                     progression_type='exponential',
                     num_layers=args.num_layers,
                     latent_modulation_dim=args.latent_modulation_dim,
@@ -122,13 +121,13 @@ def main(args):
                 else:
                         model.vdim = torch.zeros(size=[1, args.v_dim], requires_grad=True).to(device)
 
-        elif args.comment =='nonortho':
-                print('got ortho clb')
-                model = LatentModulatedSIRENLCB_nonortho(
+        elif args.comment =='basic':
+                print('got basic LRM-Functa model')
+                model = LatentModulatedSIRENLCB_basic(
                     in_size=args.in_size,
                     out_size=args.out_size,
-                    min_hidden_size=128,
-                    max_hidden_size=512,
+                    min_hidden_size=256,
+                    max_hidden_size=256,
                     progression_type='exponential',
                     num_layers=args.num_layers,
                     latent_modulation_dim=args.latent_modulation_dim,

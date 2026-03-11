@@ -29,7 +29,12 @@ def parse_args():
     """ Training configuration """
     parser.add_argument('--dataset', help='Dataset', type=str)
     parser.add_argument('--setting', help='setting', type=str, default='normal')
+    parser.add_argument('--dimension', help='dimension', type=str, default='swap')
+    parser.add_argument('--high_pass', help='high_pass filter', type=eval, default=False)
+    parser.add_argument('--adversarial', help='adversarial', type=eval, default=False)
+    parser.add_argument('--sobel', help='sobel', type=eval, default=False)
     parser.add_argument('--guidance', help='guidance',  type=eval, default=False)
+    parser.add_argument('--finetune', help='finetune',  type=eval, default=False)
     parser.add_argument('--img_size', help='Image size', type=int, default=64)
     parser.add_argument('--batch_size', help='Batch size used for training', type=int, default=4)
     parser.add_argument('--outer_steps', help='Numer of meta-learning steps to perform', type=int, default=1000000)
@@ -49,8 +54,8 @@ def parse_args():
 
     """ Model configuration """
     parser.add_argument('--hidden_size', help='MLP hidden size (L)', type=int, default=256)
-    parser.add_argument('--num_layers', help='Number of MLP layers (K)', type=int, default=15)
-    parser.add_argument('--latent_modulation_dim', help='Representation size (P)', type=int, default=2048)
+    parser.add_argument('--num_layers', help='Number of MLP layers (K)', type=int, default=10)
+    parser.add_argument('--latent_modulation_dim', help='Representation size (P)', type=int, default=2)
     parser.add_argument('--w0', help='SIREN parameter w0 (if used with w0-schedule w0,1)', type=float, default=30.)
     parser.add_argument('--w0_increment', help='If > 0, w0 is increased by w0_increment per layer', type=float, default=0.)
     parser.add_argument('--modulate_shift', help='Set True to use shift modulations', type=eval, default=True)
@@ -58,9 +63,9 @@ def parse_args():
     parser.add_argument('--enable_skip_connections', help='Set True to enable skip-connections', type=eval, default=False)
 
     """ Logging configuration """
-    parser.add_argument('--print_step', help='Print every x steps', type=int, default=100)
-    parser.add_argument('--eval_step', help='Evaluate every x steps', type=int, default=1000) #used to be 1000
-    parser.add_argument('--save_step', help='Save model every x steps', type=int, default=10000)
+    parser.add_argument('--print_step', help='Print every x steps', type=int, default=10)
+    parser.add_argument('--eval_step', help='Evaluate every x steps', type=int, default=10) #used to be 1000
+    parser.add_argument('--save_step', help='Save model every x steps', type=int, default=10)
 
     """ Eval configuration """
     parser.add_argument('--load_path', help='Load model from this path', type=str, default=None)

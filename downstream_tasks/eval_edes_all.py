@@ -22,14 +22,14 @@ from typing import List, Tuple, Optional
 from scipy.stats import linregress
 from scipy.signal import savgol_filter, find_peaks, butter, filtfilt
 from sklearn.decomposition import PCA
-from sklearn.linear_model import LinearRegression, RANSACRegressor
+from sklearn.linear_model import LinearRegression
 
 import torch
 from torch.utils.data import Dataset, DataLoader
 
 # ------------------- USER-PATHS -------------------
 TRACING_FILE = "./data/EchoNet-Dynamic/VolumeTracings.csv"
-FILELIST_CSV = ".data/EchoNet-Dynamic/FileList.csv"
+FILELIST_CSV = "./data/EchoNet-Dynamic/FileList.csv"
 
 gc.collect()
 gc.set_threshold(0)
@@ -98,31 +98,12 @@ def detect_ed_es(
 
     X = d_normalized[:, 0].reshape(-1, 1)
     y = d_normalized[:, 1]
-    inlier_mask = np.ones(len(d_normalized), dtype=bool)
 
-    if valid.sum() >= 2:
-        try:
-            ransac = RANSACRegressor(
-                estimator=LinearRegression(), residual_threshold=0.2, random_state=0
-            )
-            ransac.fit(X[valid], y[valid])
-            inlier_mask = np.zeros(len(d_normalized), dtype=bool)
-            inlier_idx = np.where(valid)[0]
-            inlier_mask[inlier_idx[ransac.inlier_mask_]] = True
-        except Exception:
-            pass
-
-    inlier_vectors = d_normalized[inlier_mask]
-    if inlier_vectors.shape[0] < 2:
-        inlier_vectors = d_normalized.copy()
-
-    try:
-        pca = PCA(n_components=1)
-        pca.fit(d_normalized)
-        v = pca.components_[0]
-    except Exception:
-        v = np.array([1.0, 0.0])
-
+   
+    pca = PCA(n_components=1)
+    pca.fit(d_normalized)
+    v = pca.components_[0]
+    
     v_norm = v / (np.linalg.norm(v) + 1e-12)
     mu = coords.mean(axis=0)
     s_raw = (coords - mu).dot(v_norm)
@@ -305,132 +286,9 @@ def evaluate_ed_es_on_dataset_return_stats(dataset_root):
 
 
 # ---------------------------------------------------------------------
-# Plotting function
+# Evaluate all subfolders under ./reconstructions
 # ---------------------------------------------------------------------
-def plot_mae_by_middledim(df):
-
-    # -------------------------------------------------
-    # Skip unwanted middle dimensions
-    # -------------------------------------------------
-   
-
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6), sharex=True)
-    ax_ed, ax_es = axes
-
-    vidm_values = sorted(df["vidm"].unique())
-
-    cmap_ortho = plt.cm.Greens
-    cmap_sep   = plt.cm.Blues
-    cmap_plain = plt.cm.Oranges
-
-    def color_from_cmap(cmap, i, n):
-        return cmap(0.4 + 0.6 * i / max(1, n - 1))
-
-    for i, vid in enumerate(vidm_values):
-        sub = df[df["vidm"] == vid]
-
-        ortho = sub[sub["prefix"] == "ortho"].sort_values("middledim")
-        sep   = sub[sub["prefix"] == "separate"].sort_values("middledim")
-        plain = sub[sub["prefix"] == "plain"].sort_values("middledim")
-
-        c_ortho = color_from_cmap(cmap_ortho, i, len(vidm_values))
-        c_sep   = color_from_cmap(cmap_sep, i, len(vidm_values))
-        c_plain = color_from_cmap(cmap_plain, i, len(vidm_values))
-
-        # ----- ED (left) -----
-        if not ortho.empty:
-            ax_ed.plot(
-                ortho["middledim"],
-                ortho["mean_ed_mae"],
-                marker="o",
-                linestyle="-",
-                color=c_ortho,
-                label=f"vidm={vid} (ortho)"
-            )
-
-        if not sep.empty:
-            ax_ed.plot(
-                sep["middledim"],
-                sep["mean_ed_mae"],
-                marker="o",
-                linestyle="-",
-                color=c_sep,
-                label=f"vidm={vid} (separate)"
-            )
-
-        if not plain.empty:
-            ax_ed.plot(
-                plain["middledim"],
-                plain["mean_ed_mae"],
-                marker="o",
-                linestyle="-",
-                color=c_plain,
-                label=f"vidm={vid} (plain)"
-            )
-
-        # ----- ES (right) -----
-        if not ortho.empty:
-            ax_es.plot(
-                ortho["middledim"],
-                ortho["mean_es_mae"],
-                marker="o",
-                linestyle="-",
-                color=c_ortho,
-                label=f"vidm={vid} (ortho)"
-            )
-
-        if not sep.empty:
-            ax_es.plot(
-                sep["middledim"],
-                sep["mean_es_mae"],
-                marker="o",
-                linestyle="-",
-                color=c_sep,
-                label=f"vidm={vid} (separate)"
-            )
-
-        if not plain.empty:
-            ax_es.plot(
-                plain["middledim"],
-                plain["mean_es_mae"],
-                marker="o",
-                linestyle="-",
-                color=c_plain,
-                label=f"vidm={vid} (plain)"
-            )
-
-    for ax, title, ylabel in [
-        (ax_ed, "ED MAE", "Mean ED MAE"),
-        (ax_es, "ES MAE", "Mean ES MAE"),
-    ]:
-        ax.set_xscale("log", base=2)
-        ax.set_xlabel("Middle dimension")
-        ax.set_ylabel(ylabel)
-        ax.set_title(title)
-        ax.grid(True, which="both")
-
-    # -------------------------------------------------
-    # Single legend (avoid duplication)
-    # -------------------------------------------------
-    handles, labels = ax_ed.get_legend_handles_labels()
-    by_label = dict(zip(labels, handles))  # remove duplicates
-    fig.legend(
-        by_label.values(),
-        by_label.keys(),
-        loc="upper center",
-        ncol=3
-    )
-
-    plt.tight_layout(rect=[0, 0, 1, 0.90])
-    plt.savefig("mae_vs_middledim_ed_es.png", dpi=200)
-    plt.close()
-
-    print("Saved plot: mae_vs_middledim_ed_es_newtry.png")
-
-# ---------------------------------------------------------------------
-# Evaluate all subfolders under ./reconstructions_tracking
-# ---------------------------------------------------------------------
-def evaluate_all_subfolders(root="./recontructions", outfile="results_ed_es.csv"):
+def evaluate_all_subfolders(root="./reconstructions", outfile="results_ed_es.csv"):
 
     test_dirs = sorted(glob.glob(os.path.join(root, "**/nfset/test"), recursive=True))
     print(f"Found {len(test_dirs)} test folders.")
@@ -494,12 +352,12 @@ def evaluate_all_subfolders(root="./recontructions", outfile="results_ed_es.csv"
     print(f"\nSaved results to {outfile}")
 
     df = pd.DataFrame(all_results)
-    plot_mae_by_middledim(df)
+
 
 # ---------------------------------------------------------------------
 def main():
      evaluate_all_subfolders(
-         root="./recontructions",
+         root="./reconstructions",
          outfile="results_ed_es.csv"
      )
 

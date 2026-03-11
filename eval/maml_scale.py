@@ -1,7 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
 from common.utils import MetricLogger, psnr
-from train.maml_boot import inner_adapt_test_scale, inner_adapt_test_scale_lora, inner_adapt_test_scale_v3, inner_adapt_test_scale_v2, inner_adapt_test_scale_time, inner_adapt_test_scale_vae
+from train.maml_boot import inner_adapt_test_scale, inner_adapt_test_scale_v3, inner_adapt_test_scale_v2
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -69,14 +69,10 @@ def test_model(args, step, model_wrapper, test_loader, logger=None):
        
         elif args.mode =='delta' or args.mode == 'try':
 
-           
-            print('gradscale v3')
             loss_in_tt_gradscale = inner_adapt_test_scale_v3(model_wrapper=model_wrapper, data=data, step_size=args.inner_lr,
                                                       num_steps=args.inner_steps_test, first_order=True,
                                                       sample_type=args.sample_type, scale_type='grad')
 
-
-     
 
         elif args.comment == 'separate2':
             train_batch= {
@@ -88,8 +84,6 @@ def test_model(args, step, model_wrapper, test_loader, logger=None):
                                                       sample_type=args.sample_type, scale_type='grad')
        
         elif args.v_dim > 0:
-
-            print('gradscale v2')
             loss_in_tt_gradscale = inner_adapt_test_scale_v2(model_wrapper=model_wrapper, data=data, step_size=args.inner_lr,
                                                       num_steps=args.inner_steps_test, first_order=True,
                                                       sample_type=args.sample_type, scale_type='grad')
@@ -103,9 +97,8 @@ def test_model(args, step, model_wrapper, test_loader, logger=None):
 
         """ Outer loss aggregation """
         with torch.no_grad():
-            if args.mode == 'time':
-                loss_out_tt_gradscale = model_wrapper(Data['vid'], Data['time'])
-            elif args.comment == 'separate2':
+           
+            if args.comment == 'separate2':
                 loss_out_tt_gradscale = model_wrapper(train_batch)
                 print('got outer loss')
             

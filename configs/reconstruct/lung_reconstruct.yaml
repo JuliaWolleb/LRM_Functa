@@ -10,30 +10,19 @@
   'lam': 0.0,
   'w0': 10.,
   'wK': 200,
-  'max_iter': 50000,
+  
   'option': lung,
   'num_frames': 1,   #number of frames per batch
   'selection': False,
   'clip': all,
-  'dimension': swap,
-  'model': clb2,
-  'comment' : nonortho,
-  'finetune': False,
-  'sobel': False,
+  'model': siren,
+  'comment' : basic,
+
   'inner_lr': 0.01, 
-  'guidance': False,
   'mode': try, 
   'in_size':2,
   'out_size': 1,
   'data_type':img,
-  'adversarial': False,
-  'lr_scheduler': True,
-  'high_pass': False,
-  'setting': modulated,
-  'setting': normal,
-  'enable_skip_connections': False,
-
-
 
 
   # Test configuration
@@ -42,14 +31,13 @@
   'inner_steps_test': 20,
 
   # Model config
-  'num_layers': 10,  #10
+  'num_layers': 10,  
   'hidden_size': 256,
   'latent_modulation_dim': 2,  
   'v_dim': 256, 
 
-   'load_path': ./logs/"path to your saved model"/best.model,
-
+   'load_path': ./logs/PATHTOYOURRUN/best.model,
   # Save NFs to
-  'save_dir': ./reconstructions_lung/lung_basic_2/
+  'save_dir': ./reconstructions/lung_basic_2/
 
 }

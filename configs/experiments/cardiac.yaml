@@ -7,7 +7,7 @@
   'inner_steps_boot': 0,
   'data_ratio': 0.2,
   'sample_type': random,
-  'lam': 1.0,
+  'lam': 1.0,  #lambda value to put orthogonal loss
   'w0': 10.,
   'wK': 200,
   'option': echo,
@@ -17,23 +17,16 @@
   'out_size' :  1,
   'max_iter': 50000,
   'lr_scheduler': True,
-  'high_pass': False,
-  'setting': normal,
-  'enable_skip_connections': False,
 
 
 
   'data_type': img,
-  'dimension': swap,
-  'comment' : nonortho,   #ortho or separate or nonortho
+  'comment' : ortho,   #ortho or basic or separate
   'inner_lr': 0.01, 
   'mode': separate,
-  'model': clb2,
-  'finetune': False,
+  'model': siren,
   'selection': True,
-  'sobel': False,
-  'guidance': False,
-  'adversarial': False,
+  'adversarial': True,
 
 
 
@@ -49,3 +42,4 @@
 
   # Save NFs to
   'save_dir': ./nfsets/cardiac_basic_2
+}

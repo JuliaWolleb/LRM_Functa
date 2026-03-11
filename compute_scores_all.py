@@ -73,11 +73,9 @@ def process_folder(folder_path, mixed=False):
         }
 
 # Main folder containing subfolders
-root_folder = '/gpfs/gibbs/project/hartley/jw3234/medfuncta/vidfuncta/recontructions_newtry/'
-#root_folder = '/gpfs/gibbs/project/hartley/jw3234/medfuncta/vidfuncta/reconstruct_LVH_newtry/'
-output_csv = 'ssim_psnr_results_newtry.csv'
-#output_csv = 'ssim_psnr_results_LVH.csv'
-mixed = False  # Set True if you have labels 0,1,2
+root_folder = './reconstructions/'
+output_csv = 'ssim_psnr_results.csv'
+mixed = False  
 
 # Collect results for all subfolders (looking into nfset/test)
 results = []
@@ -91,9 +89,7 @@ for subfolder in os.listdir(root_folder):
     if os.path.isdir(test_path) and len(os.listdir(test_path)) > 0:
         eval_path = test_path
         source = 'test'
-    elif os.path.isdir(train_path) and len(os.listdir(train_path)) > 0:
-        eval_path = train_path
-        source = 'train'
+
     else:
         print(f"Skipping {subfolder}: no valid test or train folder")
         continue
@@ -103,7 +99,7 @@ for subfolder in os.listdir(root_folder):
     stats = process_folder(eval_path, mixed=mixed)
 
     stats['folder'] = subfolder
-    stats['source'] = source   # optional: records whether test or train was used
+    stats['source'] = source   
 
     results.append(stats)
 

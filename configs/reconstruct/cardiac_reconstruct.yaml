@@ -17,20 +17,14 @@
   'in_size': 2, 
   'out_size' :  1,
   'data_type': img,
-  'dimension': swap,
-  'comment' : nonortho, #separate or ortho
+  'comment' : ortho, #ortho or basic or separate
   'mode': try, 
-  'model': clb2,
-  'finetune': False,
+  'model': siren,
   'selection': False,
-  'sobel': False,
-  'inner_lr': 0.01, 
-  'adversarial': False,
-  'max_iter': 100000,
-  'lr_scheduler': True,
-  'high_pass': False,
-  'setting': normal,
-  'enable_skip_connections': False,
+  'inner_lr': 0.01,
+  'in_size':2,
+  'out_size': 1,
+
 
 
 
@@ -42,18 +36,16 @@
   # Model config
 
   'num_layers': 10,  
-   'hidden_dim': 256,  
+  'hidden_dim': 256,  
   'latent_modulation_dim': 2,  
   'v_dim': 256, 
 
 
 
-'load_path': /gpfs/gibbs/project/hartley/jw3234/medfuncta/vidfuncta/logs/260212_framewise_echo_modelclb2_numlayers10_optionecho_guidanceFalse_adversarialFalse_lam1.0_omega10.0_inner10_modeseparate_innerlr0.01_meatlr3e-06_latentsize512_gamma0.2_hiddensize256_vdim256_frames4_commentnonorthoecho_paul/best.model,
-  
+'load_path': ./logs/PATHTOYOURRUN/best.model,
+ 
   # Save NFs to
-
-
- 'save_dir': ./recontructions/cardiac_basic_2/
+ 'save_dir': ./reconstructions/cardiac_basic_2/
 }
 
 

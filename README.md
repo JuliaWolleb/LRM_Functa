@@ -20,9 +20,25 @@ The trained models will be stored in a folder *logs*.
 ### Inference and saving of the modulation vectors
 
 - To store the modulations and reconstruct the videos, run
-`python3 rescontruct.py --config ./configs/reconstruct/cardiac_reconstruct.yaml` or `python3 rescontruct.py --config ./configs/reconstruct/lung_reconstruct.yaml`
+`python3 reconstruct.py --config ./configs/reconstruct/cardiac_reconstruct.yaml` or `python3 reconstruct.py --config ./configs/reconstruct/lung_reconstruct.yaml`
 
 In the yaml file, you will need to adapt the path to the right model stored in the *logs* folder. The output will be stored in a folder *reconstructions*.
+ To compute SSIM and PSNR on the reconstructions, run `python3 compute_scores_all.py ` . The scores will be stored in a csv file.
+
+
+### End-systole and End-diastolic frame selection
+
+To find the ED and ES frames, run
+`python3 downstream_tasks/eval_edes_all.py `
+The results will be stored in a csv file.
+
+
+
+### Downstream classification and regression
+
+
+For the downstream regression task for ejection fraction prediction on the reconstructed videos, run
+`python3 downstream_tasks/ejectionfraction_prediction.py `. You will need to specifiy the path to the reconstructed videos.
 
 
 
@@ -40,6 +56,6 @@ We followed the description in the paper [Coin++](https://arxiv.org/abs/2201.129
 
 
 ### Convolutional Autoencoder
-We followed the description in the paper [Latent Motion Profiling](https://arxiv.org/abs/2302.03130), with the code base and implementation details [here](https://github.com/YingyuYyy/CardiacPhase).
+We followed the description in the paper [Latent Motion Profiling](https://papers.miccai.org/miccai-2025/0478-Paper4211.html), with the code base and implementation details [here](https://github.com/YingyuYyy/CardiacPhase).
 
 

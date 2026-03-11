@@ -1,0 +1,2 @@
+folder,mean_ssim,std_ssim,mean_psnr,std_psnr,source
+cardiac_basic_2,0.08390565,0.034999486,9.321546,0.10700607,test
