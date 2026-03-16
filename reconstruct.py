@@ -7,7 +7,7 @@ from common.args import parse_args
 from common.utils import set_random_seed, load_model
 from data.dataset import get_dataset
 from eval.maml_full_eval import test_model, test_model_autoregressive, reconstruct_model_autoregressive
-from models.inrs import  LatentModulatedSIRENLCB_ortho, LatentModulatedSIRENLCB_basic,LatentModulatedSIRENLCB_separate
+from models.inrs import  LatentModulatedSIREN_ortho, LatentModulatedSIREN_basic,LatentModulatedSIREN_separate
 from models.model_wrapper import ModelWrapper
 
 
@@ -79,7 +79,7 @@ def main(args):
         print('vdim', args.v_dim)
         if args.comment == 'separate':
             print('got separate model')
-            model = LatentModulatedSIRENLCB_separate(
+            model = LatentModulatedSIREN_separate(
                 in_size=args.in_size,
                 out_size=args.out_size,
                 min_hidden_size=256,
@@ -102,7 +102,7 @@ def main(args):
 
         elif args.comment =='ortho':
                 print('got ortho clb')
-                model = LatentModulatedSIRENLCB_ortho(
+                model = LatentModulatedSIREN_ortho(
                     in_size=args.in_size,
                     out_size=args.out_size,
                     min_hidden_size=256,
@@ -123,7 +123,7 @@ def main(args):
 
         elif args.comment =='basic':
                 print('got basic LRM-Functa model')
-                model = LatentModulatedSIRENLCB_basic(
+                model = LatentModulatedSIREN_basic(
                     in_size=args.in_size,
                     out_size=args.out_size,
                     min_hidden_size=256,

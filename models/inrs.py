@@ -10,7 +10,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 
-class LatentModulatedSIRENLCB_separate(nn.Module):
+class LatentModulatedSIREN_separate(nn.Module):
     print('got MedFuncta/VidFuncta Model')
 
     def __init__(self, in_size, out_size, w0s, min_hidden_size=128, max_hidden_size=512, num_layers=5,
@@ -105,7 +105,7 @@ class LatentModulatedSIRENLCB_separate(nn.Module):
         return sizes
 
 
-class LatentModulatedSIRENLCB_basic(nn.Module):
+class LatentModulatedSIREN_basic(nn.Module):
     print('got  basic LRM-Functa Model')
 
     def __init__(self, in_size, out_size, w0s, min_hidden_size=256, max_hidden_size=256, num_layers=5,
@@ -204,7 +204,7 @@ class LatentModulatedSIRENLCB_basic(nn.Module):
 
 
 
-class LatentModulatedSIRENLCB_ortho(nn.Module):
+class LatentModulatedSIREN_ortho(nn.Module):
     print('got orthogonal LRM-Functa model')
 
     def __init__(self, in_size, out_size, w0s, min_hidden_size=128, max_hidden_size=512, num_layers=5,

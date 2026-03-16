@@ -6,7 +6,7 @@ from data import dataset_echonet
 from common.args import parse_args
 from common.utils import set_random_seed, Logger, InfiniteSampler
 from data.dataset import get_dataset
-from models.inrs import  LatentModulatedSIRENLCB_ortho, LatentModulatedSIRENLCB_separate,   LatentModulatedSIRENLCB_basic
+from models.inrs import  LatentModulatedSIREN_ortho, LatentModulatedSIREN_separate,   LatentModulatedSIREN_basic
 
 from models.model_wrapper import ModelWrapper
 from train.trainer import trainer
@@ -71,7 +71,7 @@ def main(args):
             print('got MedFuncta or VidFuncta model')
 
 
-            model = LatentModulatedSIRENLCB_separate(
+            model = LatentModulatedSIREN_separate(
                 in_size=args.in_size,
                 out_size=args.out_size,
                 min_hidden_size=256,
@@ -94,7 +94,7 @@ def main(args):
         
         elif args.comment =='ortho':
                 print('got orthogonal LRM-Functa Model')
-                model = LatentModulatedSIRENLCB_ortho(
+                model = LatentModulatedSIREN_ortho(
                     in_size=args.in_size,
                     out_size=args.out_size,
                     min_hidden_size=256,
@@ -115,7 +115,7 @@ def main(args):
         
         elif args.comment =='basic':
                 print('got basic LRM-Functa')
-                model = LatentModulatedSIRENLCB_basic(
+                model = LatentModulatedSIREN_basic(
                     in_size=args.in_size,
                     out_size=args.out_size,
                     min_hidden_size=256,

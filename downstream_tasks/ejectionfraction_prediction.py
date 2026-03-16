@@ -33,7 +33,6 @@ sys.path.append('.')
 sys.path.append('..')
 
 from deepchest.utilities import config_utils, utils
-from deepchest.dataset_loading import dataset_echonet
 from deepchest.evaluation.metrics import compute_metrics_echo
 from deepchest.evaluation.model_evaluation import model_evaluation_echo
 
