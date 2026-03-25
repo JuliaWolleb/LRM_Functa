@@ -32,10 +32,13 @@ import ml_collections
 sys.path.append('.')
 sys.path.append('..')
 
-from deepchest.utilities import config_utils, utils
-from deepchest.evaluation.metrics import compute_metrics_echo
+
 from deepchest.evaluation.model_evaluation import model_evaluation_echo
 
+from helpers import config_utils, utils
+from helpers import get_dataset
+from metrics import compute_metrics
+from model_evaluation import evaluate
 
 # ============================================================
 # Config
@@ -181,7 +184,7 @@ def train_one_fold(
         for X, target in train_loader:
 
             X = X.float().to(config.device)
-            target = target[:, 0].float().to(config.device)
+            target =  target.view(-1).float().to(config.device)
 
             optimizer.zero_grad()
 
@@ -197,8 +200,8 @@ def train_one_fold(
             preds.extend(output.detach().cpu().numpy())
 
         scheduler.step()
-
-        train_metrics = compute_metrics_echo(targets, preds)
+        train_metrics =compute_metrics(targets, preds, task="regression")
+        
 
         if config.wandb:
             wandb.log(
@@ -210,12 +213,10 @@ def train_one_fold(
         # Validation
         # ==========================
 
-        val_metrics = model_evaluation_echo(
-            model,
-            val_loader,
-            criterion,
-            config.device
-        )[0]
+      
+
+        val_metrics, _ = evaluate(model, val_loader, criterion, config.device, task = "echo")
+
 
         if config.wandb:
             wandb.log(
@@ -252,12 +253,9 @@ def train_one_fold(
 
     model.load_state_dict(checkpoint["model"])
 
-    test_metrics = model_evaluation_echo(
-        model,
-        test_loader,
-        criterion,
-        config.device
-    )[0]
+
+    test_metrics, _ = evaluate(model, test_loader, criterion, config.device, task = "echo")
+
 
     print("Test metrics:", test_metrics)
 

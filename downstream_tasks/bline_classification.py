@@ -1,6 +1,6 @@
 """
 Clean 5-Fold CV for B-line classification on the lung ultrasound videos.
-Uses dataset.get_dataset(config) and splits in training script only
+Uses helpers.get_dataset(config) and splits in training script only
 """
 
 import os
@@ -8,24 +8,21 @@ import sys
 import pathlib
 import numpy as np
 import pandas as pd
-
 import torch
 import wandb
-
 from torch.utils.data import DataLoader, Subset
 from torchvision import models as torchmodels
-
 from sklearn.model_selection import KFold, train_test_split
-
 import ml_collections
 
 sys.path.append('.')
 sys.path.append('..')
 
-from deepchest.utilities import config_utils, utils
-from deepchest.dataset_loading import dataset
-from deepchest.evaluation.metrics import compute_metrics
-from deepchest.evaluation.model_evaluation import model_evaluation
+import helpers
+from helpers import config_utils, utils
+from helpers import get_dataset
+from metrics import compute_metrics
+from model_evaluation import evaluate
 # ============================================================
 # CREATE FIXED RANDOM TEST SET
 # ============================================================
@@ -80,10 +77,10 @@ def get_config():
     config.learning_rate = 0.001
     config.weight_decay = 0.0
 
-    config.batch_size = 10
+    config.batch_size = 16
     config.num_workers = 0
 
-    config.nb_epochs = 20
+    config.nb_epochs = 40
     config.fixed_test_size = 40
     config.num_folds = 5
 
@@ -217,27 +214,11 @@ def train_fold(
         scheduler.step()
 
         train_metrics = compute_metrics(targets, preds)
+        val_metrics, _ = evaluate(model, val_loader, criterion, config.device)
 
-        val_metrics = model_evaluation(
-            model,
-            val_loader,
-            criterion,
-            config.device
-        )[0]
-
-        test_metrics = model_evaluation(
-            model,
-            test_loader,
-            criterion,
-            config.device
-        )[0]
-
-
-
-        
+ 
 
         print("Val ROC AUC:", val_metrics["roc_auc"])
-        print("test ROC AUC:", test_metrics["roc_auc"])
 
 
         if val_metrics["roc_auc"] > best_auc:
@@ -270,12 +251,8 @@ def train_fold(
 
     model.load_state_dict(checkpoint["model"])
 
-    test_metrics = model_evaluation(
-        model,
-        test_loader,
-        criterion,
-        config.device
-    )[0]
+ 
+    test_metrics, _ = evaluate(model, test_loader, criterion, config.device)
 
     print("Test metrics:", test_metrics)
 
@@ -299,7 +276,7 @@ def main(config):
     # LOAD FULL DATASET
     # ========================================================
 
-    full_dataset = dataset.get_dataset(config)
+    full_dataset = get_dataset(config)
 
     print("Dataset size:", len(full_dataset))
 

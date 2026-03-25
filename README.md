@@ -1,6 +1,6 @@
 # Low-Rank-Modulated Functa
 
-This repo contains the official Pytorch implementation of the MICCAI submission 1186 *Low-Rank-Modulated Functa: Exploring the Latent Space of Implicit Neural Representations for Ultrasound Video Analysis*
+This repo contains the official Pytorch implementation of the paper *Low-Rank-Modulated Functa: Exploring the Latent Space of Implicit Neural Representations for Ultrasound Video Analysis*
  
 
 ## Data
@@ -39,6 +39,9 @@ The results will be stored in a csv file.
 
 For the downstream regression task for ejection fraction prediction on the reconstructed videos, run
 `python3 downstream_tasks/ejectionfraction_prediction.py `. You will need to specifiy the path to the reconstructed videos.
+
+For the downstream B-line classification task on the reconstructed lung ultrasound videos, run
+`python3 downstream_tasks/bline_classification.py `. You will need to specifiy the path to the reconstructed videos.
 
 
 
